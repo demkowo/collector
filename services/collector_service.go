@@ -1,20 +1,20 @@
 package service
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/demkowo/goquery/model"
 )
 
 type CollectorRepository interface {
-	FindAllLinks()
+	GatherAllLinks(links []*model.Links) error
 }
 
 type CollectorService interface {
-	FindAllLinks([]string, ...string)
+	GatherAllLinks([]string, ...string) error
 }
 
 type collectorService struct {
@@ -29,14 +29,13 @@ func New(repository CollectorRepository) CollectorService {
 	}
 }
 
-func (s collectorService) FindAllLinks(urls []string, limits ...string) {
+func (s collectorService) GatherAllLinks(urls []string, limits ...string) error {
 	for _, url := range urls {
 
 		// Create goquery doc from url
 		doc := createGoqueryDoc(url)
 
-		// Slice to store links matching limits
-		uniqueLinks := make(map[string]bool)
+		linksSlice := []*model.Links{}
 
 		// Find all <a> elements
 		doc.Find("a").Each(func(index int, element *goquery.Selection) {
@@ -46,22 +45,20 @@ func (s collectorService) FindAllLinks(urls []string, limits ...string) {
 			// Check limits
 			if len(limits) == 0 || checkLimits(link, limits) {
 				// If link fullfull conditions, store it in the map
-				uniqueLinks[link] = true
+				//links[link] = true
+				links := &model.Links{
+					Url:     link,
+					Details: false,
+				}
+				linksSlice = append(linksSlice, links)
 			}
 		})
 
-		// Convert the unique links map to a slice
-		filteredLinks := make([]string, 0, len(uniqueLinks))
-		for link := range uniqueLinks {
-			filteredLinks = append(filteredLinks, link)
-		}
-
-		fmt.Println(len(uniqueLinks))
-		// Print or use the filtered links as needed
-		for _, link := range filteredLinks {
-			fmt.Println("Link:", link)
+		if err := s.repo.GatherAllLinks(linksSlice); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 func createGoqueryDoc(url string) *goquery.Document {

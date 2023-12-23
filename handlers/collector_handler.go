@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -9,7 +10,7 @@ import (
 )
 
 type CollectorHandler interface {
-	FindAllLinks(*gin.Context)
+	GatherAllLinks(*gin.Context)
 }
 
 type collectorHandler struct {
@@ -24,8 +25,8 @@ func New(collector collector.CollectorService) CollectorHandler {
 	}
 }
 
-func (h collectorHandler) FindAllLinks(c *gin.Context) {
-	log.Println("--- handler/FindAllLinks() ---")
+func (h collectorHandler) GatherAllLinks(c *gin.Context) {
+	log.Println("--- handler/GatherAllLinks() ---")
 
 	// Check the Content-Type header to determine how to decode the data
 	contentType := c.GetHeader("Content-Type")
@@ -42,7 +43,10 @@ func (h collectorHandler) FindAllLinks(c *gin.Context) {
 			return
 		}
 
-		h.service.FindAllLinks(data.Urls, data.Limits...)
+		if err := h.service.GatherAllLinks(data.Urls, data.Limits...); err != nil {
+			fmt.Println("Can't gather links ", err)
+			return
+		}
 
 		return
 	}
@@ -51,5 +55,5 @@ func (h collectorHandler) FindAllLinks(c *gin.Context) {
 	urls := c.PostFormArray("urls")
 	limits := c.PostFormArray("limits")
 
-	h.service.FindAllLinks(urls, limits...)
+	h.service.GatherAllLinks(urls, limits...)
 }

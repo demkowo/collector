@@ -1,1 +1,1 @@
-# goquery
+# collector
